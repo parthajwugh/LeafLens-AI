@@ -12,12 +12,12 @@ st.set_page_config(
 @st.cache_resource
 def load_ai_model():
     return tf.keras.models.load_model(
-        "models/best_model.keras"
+        "best_model.keras"
     )
 
 model = load_ai_model()
 
-with open("models/class_names.json", "r") as file:
+with open("class_names.json", "r") as file:
     class_names = json.load(file)
 
 print("TOTAL CLASSES:", len(class_names))
