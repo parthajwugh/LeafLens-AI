@@ -1,5 +1,6 @@
 
 import streamlit as st
+from pathlib import Path
 import json
 import numpy as np
 import tensorflow as tf
@@ -9,16 +10,26 @@ st.set_page_config(
     page_icon="🌿",
     layout="wide"
 )
+
+MODEL_PATH = Path("models/best_model.keras")
+if not MODEL_PATH.exists():
+    MODEL_PATH = Path("best_model.keras")
+
+CLASS_NAMES_PATH = Path("models/class_names.json")
+if not CLASS_NAMES_PATH.exists():
+    CLASS_NAMES_PATH = Path("class_names.json")
+
+
 @st.cache_resource
 def load_ai_model():
-    return tf.keras.models.load_model(
-        "best_model.keras"
-    )
+    return tf.keras.models.load_model(MODEL_PATH)
+
 
 model = load_ai_model()
 
-with open("class_names.json", "r") as file:
+with open(CLASS_NAMES_PATH, "r") as file:
     class_names = json.load(file)
+
 
 print("TOTAL CLASSES:", len(class_names))
 print("RICE HEALTHY INDEX:", class_names.index("Rice_Combined__Healthy Leaf"))
@@ -178,7 +189,6 @@ st.markdown("""
     </p>
 </div>
 """, unsafe_allow_html=True)
-
 col1, col2 = st.columns(2)
 
 with col1:
@@ -217,16 +227,8 @@ uploaded_file = st.file_uploader(
 
 
 
-if uploaded_file is not None:
-    st.image(
-        uploaded_file,
-        caption="Uploaded Leaf Image",
-        use_container_width=True
-    )
 
-    st.success("Image uploaded successfully!")
-
-    if st.button(
+if uploaded_file is not None and st.button(
         "🌿 Detect Plant Disease",
         type="primary",
         use_container_width=True
@@ -239,73 +241,64 @@ if uploaded_file is not None:
 
         if results:
             result = results[0]
-            crop, disease = result["class"].split("__", 1)
-
-            if "healthy" in disease.lower():
-                st.success("🌿 Great! The leaf appears healthy.")
-            else:
-                st.warning("🦠 Possible disease detected. Please inspect the leaf carefully.")
-
-
-            st.success(f"🌱 Detected Crop: {crop}")
-
-            if "healthy" in disease.lower():
-                st.markdown("### 🌿 Leaf Status: Healthy")
-            else:
-                st.markdown(f"### 🦠 Possible Disease: {disease}")
-
-
-            st.metric(
-                label="AI Confidence",
-                value=f"{result['confidence']:.2f}%"
-            )
 
             if result["confidence"] < 70:
+                st.error("🚫 Unsupported Crop or Unclear Image")
+
                 st.warning(
-                    "⚠️ Low confidence! Please upload a clearer "
-                    "leaf image and verify the result with an expert."
+                    "LeafLens AI could not confidently identify "
+                    "this image as one of its 8 supported crop groups."
                 )
+
+                st.info(
+                    "Please upload a clear leaf image of Corn, Cotton, "
+                    "Potato, Rice, Soybean, Sugarcane, Tomato or Wheat."
+                )
+
             else:
-                st.success(
-                    "AI prediction confidence is relatively high. "
-                    "Please verify the result before taking action."
+                crop, disease = result["class"].split("__", 1)
+
+                if "healthy" in disease.lower():
+                    st.success("🌿 Great! The leaf appears healthy!")
+                    st.markdown("### 🌿 Leaf Status: Healthy")
+                else:
+                    st.warning(
+                        "🦠 Possible disease detected. "
+                        "Please inspect the leaf carefully."
+                    )
+                    st.markdown(
+                        f"### 🦠 Possible Disease: {disease}"
+                    )
+
+                st.success(f"🌱 Detected Crop: {crop}")
+
+                st.metric(
+                    label="AI Confidence",
+                    value=f"{result['confidence']:.2f}%"
+                )
+
+                st.warning(
+                    "Please verify the prediction before taking "
+                    "any treatment decision."
                 )
 
 
+# FARMER MASCOT SECTION
+
+st.markdown("---")
 
 st.markdown("""
-<div style="
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:30px;
-    flex-wrap:wrap;
-    background:linear-gradient(135deg,#e1f5e5,#ffffff);
-    border:1px solid #c5e5ce;
-    border-radius:25px;
-    padding:28px;
-    margin-top:35px;
-    box-shadow:0 12px 30px rgba(20,90,50,0.10);
-">
+<div style="text-align:center; padding:20px;">
     <div style="font-size:100px;">👨‍🌾</div>
-    <div style="text-align:center;">
-        <h2 style="color:#075b3c;margin-bottom:8px;">
-            Hello Farmer! 🌿
-        </h2>
-        <h3 style="color:#267447;">
-            Let's Grow Healthy Crops Together!
-        </h3>
-        <p style="color:#52715e;">
-            Your friendly AI farming companion is here
-            to help you care for your crops.
-        </p>
-        <div style="font-size:28px;">
-            🌱 🌾 🍃 🌻
-        </div>
-    </div>
+    <h2>Hello Farmer! 🌿</h2>
+    <h3>Let's Grow Healthy Crops Together!</h3>
+    <p>
+        Your friendly AI farming companion is here
+        to help you care for your crops.
+    </p>
+    <div style="font-size:30px;">🌱 🌾 🍃 🌻</div>
 </div>
 """, unsafe_allow_html=True)
-
 
 st.markdown("""
 <div class="support">
